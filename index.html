@@ -1,1 +1,119 @@
-PLACEHOLDER
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>WorldLife: Unbound</title>
+<style>
+:root{--bg:#0d0f14;--card:#161a22;--g:#00e676;--o:#ffab00;--r:#ff5252;--t:#eef0f4;--m:#8b93a7;--b:#2a3040;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--t);min-height:100vh;padding:12px;padding-bottom:100px;}
+.card{background:var(--card);border:1px solid var(--b);border-radius:14px;padding:14px;margin-bottom:12px;}
+h1{font-size:1.3rem;color:var(--g);margin:0;}
+.muted{color:var(--m);font-size:.88rem;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;font-size:.9rem;margin-top:8px;}
+.btn{background:#252b38;color:var(--t);border:1px solid var(--b);border-radius:11px;padding:12px 14px;font-size:.9rem;margin:4px 4px 4px 0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.btn:active{background:#353c4d;}
+.btn-g{background:#1b5e20;border-color:#2e7d32;}
+.btn-o{background:#e65100;border-color:#ef6c00;}
+.btn-r{background:#b71c1c;border-color:#c62828;}
+.btn-block{display:block;width:100%;margin:8px 0;text-align:center;}
+#log{background:#0a0c11;border:1px solid var(--b);border-radius:12px;padding:12px;max-height:190px;overflow-y:auto;font-size:.88rem;margin-bottom:12px;}
+.ll{margin-bottom:5px;}.sys{color:#a5d6a7;}.bad{color:#ef9a9a;}.story{color:#81d4fa;}
+.hidden{display:none!important;}
+.bar{position:fixed;bottom:0;left:0;right:0;background:#12151c;border-top:1px solid var(--b);padding:10px;display:flex;gap:5px;overflow-x:auto;z-index:50;}
+.bar .btn{flex:0 0 auto;padding:10px 12px;font-size:.82rem;}
+.birth{background:#1a2332;border:1px solid #2a3a50;border-radius:12px;padding:14px;margin:12px 0;}
+</style>
+</head>
+<body>
+<div id="s-title">
+  <div class="card" style="text-align:center;margin-top:40px;">
+    <h1>WorldLife: Unbound</h1>
+    <p class="muted" style="margin:10px 0;">Lagos Server · Prototype</p>
+    <p class="muted" style="margin-bottom:18px;">You are born into the world. The system decides who you are.</p>
+    <button class="btn btn-g btn-block" onclick="startNew()">Enter the World</button>
+    <button class="btn btn-block" onclick="loadGame()">Continue Saved Life</button>
+  </div>
+</div>
+<div id="s-birth" class="hidden">
+  <div class="card">
+    <h1 style="font-size:1.15rem;">You are being born...</h1>
+    <p class="muted" style="margin:8px 0 12px;">The system is deciding your starting life. You do not choose.</p>
+    <div class="birth" id="birth-box"></div>
+    <button class="btn btn-g btn-block" onclick="enterWorld()">Begin Life in Lagos</button>
+  </div>
+</div>
+<div id="s-game" class="hidden">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h1 style="font-size:1.15rem;" id="p-name">Name</h1>
+      <span class="muted" id="p-day">Day 1</span>
+    </div>
+    <div class="muted" id="p-loc" style="margin:3px 0 4px;">Location</div>
+    <div class="muted" id="p-bg"></div>
+    <div class="grid">
+      <div>Money <strong id="p-money">₦0</strong></div>
+      <div>HP <strong id="p-hp">100</strong></div>
+      <div>Energy <strong id="p-energy">100</strong></div>
+      <div>Wanted <strong id="p-wanted">0</strong></div>
+      <div>Rep <strong id="p-rep">0</strong></div>
+      <div>Street <strong id="p-street">0</strong></div>
+    </div>
+    <div class="muted" style="margin-top:8px;" id="p-party"></div>
+  </div>
+  <div id="log"></div>
+  <div class="card" id="acts"></div>
+</div>
+<div class="bar hidden" id="bar">
+  <button class="btn" onclick="doLook()">Look</button>
+  <button class="btn" onclick="showMap()">Map</button>
+  <button class="btn" onclick="showInv()">Inv</button>
+  <button class="btn" onclick="showShop()">Shop</button>
+  <button class="btn" onclick="showParty()">Party</button>
+  <button class="btn" onclick="ask()">Ask</button>
+  <button class="btn" onclick="doRest()">Rest</button>
+  <button class="btn" onclick="saveGame()">Save</button>
+</div>
+<script>
+const LOCS={"Lagos Mainland - Street":{d:"Busy Lagos street. Okadas, generators, heat, noise.",c:["Oshodi Motor Park","Balogun Market Area","Surulere","Local Buka","Food Market"]},"Oshodi Motor Park":{d:"Chaotic motor park. Agberos control the gates.",c:["Lagos Mainland - Street","Balogun Market Area","Ikeja"],npc:["Agbero Leader"]},"Balogun Market Area":{d:"Dense market. Phones, clothes, deals.",c:["Lagos Mainland - Street","Oshodi Motor Park","Lagos Island","Electronics Shop"]},"Food Market":{d:"Fresh food and provisions.",c:["Lagos Mainland - Street","Local Buka"]},"Victoria Island":{d:"Richer side of Lagos.",c:["Lagos Island","Ikoyi","Car Dealership","Luxury Shop"]},"Car Dealership":{d:"Cars from used to Rolls Royce.",c:["Victoria Island"]},"Luxury Shop":{d:"High-end watches and goods.",c:["Victoria Island"]},"Electronics Shop":{d:"Phones and gadgets.",c:["Balogun Market Area","Ikeja"]},"Lagos Island":{d:"Commercial island.",c:["Victoria Island","Balogun Market Area"]},"Surulere":{d:"Residential and local business.",c:["Lagos Mainland - Street","Local Buka","Small Shop"]},"Ikeja":{d:"Tech and government area.",c:["Oshodi Motor Park","Electronics Shop"]},"Ikoyi":{d:"Quiet and expensive.",c:["Victoria Island"]},"Local Buka":{d:"Local food joint.",c:["Lagos Mainland - Street","Surulere","Food Market"]},"Small Shop":{d:"Small shop front.",c:["Surulere"]},"Hospital":{d:"Hospital. Treatment costs money.",c:["Lagos Mainland - Street"]},"Police Station":{d:"Police station.",c:["Lagos Mainland - Street"]}};
+const SHOPS={"Food Market":[{n:"Foodstuffs",p:8000},{n:"Water",p:500}],"Local Buka":[{n:"Plate of Food",p:3500},{n:"Water",p:600}],"Electronics Shop":[{n:"Used Phone",p:32000},{n:"Accessories",p:9000}],"Balogun Market Area":[{n:"Cheap Phone",p:12000},{n:"Fabric",p:20000}],"Car Dealership":[{n:"Used Car",p:2800000},{n:"Rolls Royce",p:92000000}],"Luxury Shop":[{n:"Luxury Watch",p:1350000}]};
+const OTHERS=["Kemi","Baba Tee","Chidi","Amaka","Oga Phil","Smallie","Fatima","Jay"];
+const NM=["Tunde","Chidi","Emeka","Segun","Femi","Kunle","Sola","Bayo","Kemi","Amaka","Funke","Ngozi","Aisha","Bisi","Chioma","Tola"];
+let P=null,near=[],stand=0;
+function R(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function M(n){return "₦"+Number(n).toLocaleString();}
+function pick(a){return a[R(0,a.length-1)];}
+function show(id){["s-title","s-birth","s-game"].forEach(s=>document.getElementById(s).classList.toggle("hidden",s!==id));document.getElementById("bar").classList.toggle("hidden",id!=="s-game");}
+function log(t,c){const e=document.getElementById("log");const d=document.createElement("div");d.className="ll "+(c||"");d.textContent=t;e.appendChild(d);e.scrollTop=e.scrollHeight;}
+function clearLog(){document.getElementById("log").innerHTML="";}
+function refresh(){if(!P)return;document.getElementById("p-name").textContent=P.name;document.getElementById("p-day").textContent="Day "+P.day+" · "+P.time;document.getElementById("p-loc").textContent=P.loc;document.getElementById("p-bg").textContent=P.bg+" · Age "+P.age+" · "+P.gender;document.getElementById("p-money").textContent=M(P.money);document.getElementById("p-hp").textContent=P.hp;document.getElementById("p-energy").textContent=P.en;document.getElementById("p-wanted").textContent=P.wanted;document.getElementById("p-rep").textContent=P.rep;document.getElementById("p-street").textContent=P.street;document.getElementById("p-party").textContent=P.party.length?"Party: "+P.party.join(", "):"";}
+function acts(list){const a=document.getElementById("acts");a.innerHTML="";list.forEach(x=>{const b=document.createElement("button");b.className="btn "+(x.c||"");b.textContent=x.t;b.onclick=x.f;a.appendChild(b);});}
+function randomBirth(){const gender=pick(["Male","Female"]);const name=pick(NM);const age=pick([18,19,21,23,25,27,29,32,35,38,40,42]);const roll=R(1,100);let bg="Street";if(roll<=35)bg="Street";else if(roll<=65)bg="Middle Class";else if(roll<=80)bg="Nepo Baby";else bg="Orphan";const p={name,age,bg,gender,loc:"Lagos Mainland - Street",money:0,hp:100,en:100,str:20,street:5,rep:0,inv:[],quests:[],day:1,time:"Morning",wanted:0,record:0,party:[],equip:null,deaths:0};if(bg==="Street"){p.money=R(2500,14000);p.str=R(30,55);p.street=R(22,42);p.inv.push({n:"Kitchen Knife",v:3000,t:"weapon",d:8});p.equip=0;p.story="You grew up on the street. You know how to survive.";}else if(bg==="Middle Class"){p.money=R(55000,180000);p.str=R(16,35);p.street=R(10,24);p.inv.push({n:"Used Phone",v:25000,t:"elec"});p.story="Ordinary family. Some chance, some pressure.";}else if(bg==="Nepo Baby"){p.money=R(1200000,4800000);p.str=R(12,28);p.street=R(6,16);p.loc="Victoria Island";p.inv.push({n:"Phone",v:30000,t:"elec"});p.story="Born into money and connections.";}else{p.money=R(400,4500);p.str=R(20,42);p.street=R(14,32);p.story="No family. Full freedom and full risk.";}return p;}
+function startNew(){P=randomBirth();stand=0;document.getElementById("birth-box").innerHTML="<div style='font-size:1.1rem;margin-bottom:6px;'><strong>"+P.name+"</strong></div><div class='muted'>Age "+P.age+" · "+P.gender+"</div><div style='margin:8px 0;'><strong>"+P.bg+"</strong></div><div class='muted' style='margin-bottom:8px;'>"+P.story+"</div><div>Starting money: <strong>"+M(P.money)+"</strong></div><div class='muted' style='margin-top:6px;'>Born in: "+P.loc+"</div>";show("s-birth");}
+function enterWorld(){clearLog();log("You open your eyes in Lagos.","story");log(P.story,"story");log(LOCS[P.loc].d);log("The world is already moving.","sys");show("s-game");refresh();main();spawn();}
+function loadGame(){const raw=localStorage.getItem("wl_v3");if(!raw){alert("No save found.");return;}const d=JSON.parse(raw);P=d.P;stand=d.stand||0;clearLog();log("Life continues.","sys");show("s-game");refresh();main();spawn();}
+function saveGame(){localStorage.setItem("wl_v3",JSON.stringify({P,stand}));log("Saved on this device.","sys");}
+function main(){const L=LOCS[P.loc];const b=[];(L.c||[]).forEach(x=>b.push({t:"Go → "+x,f:()=>go(x)}));if(L.npc&&L.npc.indexOf("Agbero Leader")>=0)b.push({t:"Talk to Agbero",c:"btn-o",f:agbero});near.forEach(n=>{b.push({t:"Invite "+n,f:()=>invite(n)});b.push({t:"Talk "+n,f:()=>talk(n)});});b.push({t:"Look for money",f:moneyTips});b.push({t:"Rob someone",c:"btn-r",f:rob});if(P.quests&&P.quests.length)b.push({t:"Do Quest",c:"btn-g",f:doQuest});acts(b);}
+function spawn(){near=[];if(Math.random()<0.5){const s=OTHERS.slice().sort(()=>Math.random()-0.5);near=s.slice(0,R(1,2));}}
+function go(place){if(!LOCS[place])return;P.loc=place;P.en=Math.max(0,P.en-R(5,13));log(P.party.length?"You + party arrive at "+place:"You arrive at "+place);log(LOCS[place].d);timePass();spawn();refresh();main();if(P.en<=5)log("Running low on energy. Rest soon.","bad");}
+function doLook(){const L=LOCS[P.loc];log(L.d);if(L.c)log("Ways out: "+L.c.join(", "));if(near.length)log("People here: "+near.join(", "));if(P.party.length)log("With you: "+P.party.join(", "));main();}
+function showMap(){log("=== PLACES ===","sys");Object.keys(LOCS).forEach(n=>log((n===P.loc?"→ ":"  ")+n));acts([{t:"Route to Food Market",f:()=>dir("Food Market")},{t:"Route to Car Dealership",f:()=>dir("Car Dealership")},{t:"Route to Oshodi",f:()=>dir("Oshodi Motor Park")},{t:"Back",f:main}]);}
+function dir(goal){const g={};Object.keys(LOCS).forEach(k=>g[k]=LOCS[k].c||[]);const q=[[P.loc,[P.loc]]],seen=new Set([P.loc]);let path=null;while(q.length){const [cur,pth]=q.shift();if(cur===goal){path=pth;break;}(g[cur]||[]).forEach(n=>{if(!seen.has(n)){seen.add(n);q.push([n,pth.concat(n)]);}});}if(!path){log("No route.");return;}log("Route to "+goal+":","sys");path.forEach((p,i)=>log((i?"→ ":"Now: ")+p));const b=path.slice(1).map(p=>({t:"Go "+p,f:()=>go(p)}));b.push({t:"Back",f:main});acts(b);}
+function showInv(){if(!P.inv.length){log("Nothing on you.");main();return;}log("=== ON YOU ===","sys");P.inv.forEach((it,i)=>log((i+1)+". "+it.n+(P.equip===i?" [EQUIPPED]":"")));const b=P.inv.map((it,i)=>({t:"Sell "+it.n,f:()=>{const o=Math.floor((it.v||1000)*(0.5+Math.random()*0.55));if(confirm("Sell for "+M(o)+"?")){P.money+=o;P.inv.splice(i,1);if(P.equip===i)P.equip=null;log("Sold "+M(o));refresh();main();}}}));b.push({t:"Back",f:main});acts(b);}
+function showShop(){const cat=SHOPS[P.loc];if(!cat){log("Nothing sold at this exact place.");log("Food → Food Market | Cars → Car Dealership | Phones → Electronics");main();return;}log("=== "+P.loc+" ===","sys");const b=cat.map(it=>({t:it.n+" · "+M(it.p),f:()=>{if(P.money<it.p){log("Not enough money.");return;}P.money-=it.p;P.inv.push({n:it.n,v:it.p,t:"item"});log("Bought "+it.n);if(it.n.indexOf("Rolls")>=0||it.n.indexOf("Car")>=0)log("Vehicle is yours.","sys");refresh();}}));b.push({t:"Back",f:main});acts(b);}
+function showParty(){log(P.party.length?"With you: "+P.party.join(", "):"You are alone.");const b=[];if(P.party.length)b.push({t:"Leave Party",c:"btn-r",f:()=>{P.party=[];log("Party left.");refresh();main();}});near.forEach(n=>{if(P.party.indexOf(n)<0)b.push({t:"Invite "+n,f:()=>invite(n)});});b.push({t:"Back",f:main});acts(b);}
+function invite(n){if(P.party.indexOf(n)>=0)return;P.party.push(n);log(n+" is now with you.");refresh();main();}
+function talk(n){log("You speak with "+n+".");acts([{t:"Invite to party",f:()=>invite(n)},{t:"Rob them",c:"btn-r",f:()=>fight(n,R(25,50))},{t:"Back",f:main}]);}
+function moneyTips(){log("Ways to get money:");log("• Oshodi → work with agberos");log("• Markets → trade or labour");log("• Sell what you carry");log("• Riskier options exist");main();}
+function rob(){if(P.en<15){log("Too tired.");return;}const ch=0.28+P.street/180+P.party.length*0.06;if(Math.random()<ch){let g=R(7000,52000);if(P.party.length)g=Math.floor(g*1.2);P.money+=g;P.wanted++;P.record++;P.en-=16;log("Robbery worked. +"+M(g),"sys");if(Math.random()<0.35)log("You were noticed.","bad");}else{log("It went wrong.","bad");fight("Target",R(20,48));}refresh();main();}
+function fight(name,str){log("Fight vs "+name,"bad");let ehp=55;const bonus=(P.equip!=null&&P.inv[P.equip])?(P.inv[P.equip].d||0):0;const pb=P.party.length*4;function rnd(){if(P.hp<=0||ehp<=0){if(P.hp<=0){const lost=R(12000,65000);P.money=Math.max(0,P.money-lost);P.hp=28;P.en=25;P.deaths++;P.loc="Hospital";P.party=[];log("You went down. Lost "+M(lost)+". Hospital.","bad");}else{const g=R(4000,32000);P.money+=g;log("You won. +"+M(g));}refresh();main();return;}acts([{t:"Attack",f:()=>{const d=R(Math.max(5,P.str/3|0),(P.str/2|0)+7)+bonus+pb;ehp-=d;log("You hit "+d);if(ehp>0){const ed=R(4,(str/2|0)+5);P.hp-=ed;log(name+" hits "+ed);}refresh();rnd();}},{t:"Flee",f:()=>{if(Math.random()<0.42){log("Got away.");main();}else{log("Couldn't escape.");P.hp-=R(4,14);refresh();rnd();}}},{t:"Stop",f:main}]);}rnd();}
+function agbero(){log("Agbero Leader looks at you.");acts([{t:"Work with them",f:()=>{let g=R(10000,34000);if(P.party.length)g=Math.floor(g*1.2);P.money+=g;stand+=6;log("Work done. +"+M(g));refresh();main();}},{t:"Pay respect",f:()=>{const c=R(4000,14000);if(P.money>=c){P.money-=c;stand+=9;log("Respect given.");}else log("Not enough.");refresh();main();}},{t:"Challenge",c:"btn-r",f:()=>fight("Agbero",R(28,50))},{t:"Back",f:main}]);}
+function doQuest(){if(!P.quests||!P.quests.length){log("No quest.");return;}const q=P.quests[0];const r=Math.floor(q.r*(1+P.party.length*0.15));P.money+=r;log("Quest done: "+q.t+". +"+M(r));P.quests.shift();refresh();main();}
+function doRest(){P.en=Math.min(100,P.en+48);P.hp=Math.min(100,P.hp+10);P.day++;P.time="Morning";log("You rest. New day.","sys");if(Math.random()<0.4){const q={t:"Package Run",r:R(14000,38000)};P.quests=P.quests||[];P.quests.push(q);log("[Quest] "+q.t+" — "+M(q.r));}refresh();main();}
+function timePass(){const o=["Morning","Afternoon","Evening","Night"];const i=o.indexOf(P.time);if(i===3){P.time="Morning";P.day++;}else P.time=o[i+1];}
+function ask(){log("Operators listening.","sys");acts([{t:"How do I make money?",f:moneyTips},{t:"Where do I buy food?",f:()=>{log("Food Market or Local Buka.");dir("Food Market");}},{t:"Where do I buy a car?",f:()=>{log("Car Dealership near Victoria Island.");dir("Car Dealership");}},{t:"How does party work?",f:()=>{log("When people appear, Invite them. They move and fight with you.");main();}},{t:"Back",f:main}]);}
+show("s-title");
+</script>
+</body>
+</html>
